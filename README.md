@@ -1,4 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Networking Swipe Agent
+
+AI-powered networking assistant that generates personalized outreach messages and allows you to swipe through options to find the perfect message.
+
+## Features
+
+- 🤖 **AI-Generated Drafts**: Claude AI creates personalized networking messages
+- 👆 **Swipe Interface**: Quickly browse through multiple message options
+- 📊 **Message History**: Track all your sent messages and connections
+- 🎨 **Modern UI**: Beautiful, responsive design with Tailwind CSS and shadcn/ui
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **AI**: Anthropic Claude API
+- **Database**: Supabase (planned)
+- **Animation**: Framer Motion
 
 ## Getting Started
 
