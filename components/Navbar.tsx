@@ -12,6 +12,9 @@ export default function Navbar() {
         </Link>
         
         <div className="hidden md:flex items-center space-x-6">
+          <Link href="/swipe" className="text-sm font-medium hover:text-primary transition-colors">
+            Discover
+          </Link>
           <Link href="/draft" className="text-sm font-medium hover:text-primary transition-colors">
             Draft Messages
           </Link>
@@ -22,7 +25,7 @@ export default function Navbar() {
 
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/draft">Get Started</Link>
+            <Link href="/swipe">Get Started</Link>
           </Button>
         </div>
       </div>

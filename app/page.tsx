@@ -24,7 +24,7 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button size="lg" className="text-lg px-8" asChild>
-              <Link href="/draft">
+              <Link href="/swipe">
                 Get Started
               </Link>
             </Button>
@@ -125,7 +125,7 @@ export default function Home() {
           </div>
           
           <Button size="lg" className="mt-8" asChild>
-            <Link href="/draft">
+            <Link href="/swipe">
               Start Networking Now
             </Link>
           </Button>
