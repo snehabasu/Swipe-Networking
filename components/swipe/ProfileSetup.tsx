@@ -6,18 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserProfile } from "@/lib/types/swipe";
-import { Loader2, Linkedin, ChevronDown, ChevronUp } from "lucide-react";
+import { User } from "lucide-react";
 
 interface ProfileSetupProps {
   onComplete: (profile: UserProfile) => void;
 }
 
 export function ProfileSetup({ onComplete }: ProfileSetupProps) {
-  const [linkedinUrl, setLinkedinUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showManual, setShowManual] = useState(false);
-  const [manualProfile, setManualProfile] = useState<UserProfile>({
+  const [profile, setProfile] = useState<UserProfile>({
     name: "",
     title: "",
     company: "",
@@ -27,45 +24,12 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     linkedinUrl: "",
   });
 
-  const handleFetchProfile = async () => {
-    if (!linkedinUrl.includes("linkedin.com/in/")) {
-      setError("Please enter a valid LinkedIn profile URL (e.g., https://linkedin.com/in/yourname)");
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch("/api/fetch-linkedin-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkedinUrl }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Failed to fetch profile");
-        setShowManual(true);
-        return;
-      }
-
-      onComplete(data.profile);
-    } catch {
-      setError("Failed to connect. Please enter your details manually.");
-      setShowManual(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleManualSubmit = () => {
-    if (!manualProfile.name || !manualProfile.title) {
+  const handleSubmit = () => {
+    if (!profile.name || !profile.title) {
       setError("Please fill in at least your name and title.");
       return;
     }
-    onComplete({ ...manualProfile, linkedinUrl });
+    onComplete(profile);
   };
 
   return (
@@ -83,127 +47,93 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
         </p>
       </div>
 
-      {/* LinkedIn URL input */}
       <Card className="w-full border-2">
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-2 mb-2">
-            <Linkedin className="w-5 h-5 text-blue-600" />
-            <Label className="text-base font-semibold">
-              Import from LinkedIn
-            </Label>
+            <User className="w-5 h-5 text-blue-600" />
+            <Label className="text-base font-semibold">Your Details</Label>
           </div>
 
-          <div className="flex gap-2">
-            <Input
-              placeholder="https://linkedin.com/in/yourname"
-              value={linkedinUrl}
-              onChange={(e) => {
-                setLinkedinUrl(e.target.value);
-                setError("");
-              }}
-              onKeyDown={(e) => e.key === "Enter" && handleFetchProfile()}
-            />
-            <Button onClick={handleFetchProfile} disabled={isLoading || !linkedinUrl}>
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Import"
-              )}
-            </Button>
+          <div className="grid gap-3">
+            <div>
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                placeholder="Your full name"
+                value={profile.name}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, name: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                placeholder="e.g., Product Manager"
+                value={profile.title}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, title: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="company">Company</Label>
+              <Input
+                id="company"
+                placeholder="e.g., Acme Corp"
+                value={profile.company}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, company: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="headline">Headline</Label>
+              <Input
+                id="headline"
+                placeholder="Your LinkedIn headline"
+                value={profile.headline}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, headline: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="summary">About / Summary</Label>
+              <textarea
+                id="summary"
+                placeholder="Brief summary of your experience, skills, and what you bring to the table..."
+                value={profile.summary}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, summary: e.target.value }))
+                }
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+              />
+            </div>
+            <div>
+              <Label htmlFor="linkedin">LinkedIn URL</Label>
+              <Input
+                id="linkedin"
+                placeholder="https://linkedin.com/in/yourname"
+                value={profile.linkedinUrl}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, linkedinUrl: e.target.value }))
+                }
+              />
+            </div>
           </div>
 
           {error && (
             <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
           )}
+
+          <Button className="w-full" onClick={handleSubmit}>
+            Continue
+          </Button>
         </CardContent>
       </Card>
-
-      {/* Manual entry toggle */}
-      <button
-        onClick={() => setShowManual(!showManual)}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {showManual ? (
-          <ChevronUp className="w-4 h-4" />
-        ) : (
-          <ChevronDown className="w-4 h-4" />
-        )}
-        Or enter details manually
-      </button>
-
-      {/* Manual entry form */}
-      {showManual && (
-        <Card className="w-full border-2">
-          <CardContent className="p-6 space-y-4">
-            <div className="grid gap-3">
-              <div>
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="Your full name"
-                  value={manualProfile.name}
-                  onChange={(e) =>
-                    setManualProfile((p) => ({ ...p, name: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g., Product Manager"
-                  value={manualProfile.title}
-                  onChange={(e) =>
-                    setManualProfile((p) => ({ ...p, title: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="company">Company</Label>
-                <Input
-                  id="company"
-                  placeholder="e.g., Acme Corp"
-                  value={manualProfile.company}
-                  onChange={(e) =>
-                    setManualProfile((p) => ({ ...p, company: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="headline">Headline</Label>
-                <Input
-                  id="headline"
-                  placeholder="Your LinkedIn headline"
-                  value={manualProfile.headline}
-                  onChange={(e) =>
-                    setManualProfile((p) => ({
-                      ...p,
-                      headline: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="summary">About / Summary</Label>
-                <textarea
-                  id="summary"
-                  placeholder="Brief summary of your experience and what you bring to the table..."
-                  value={manualProfile.summary}
-                  onChange={(e) =>
-                    setManualProfile((p) => ({ ...p, summary: e.target.value }))
-                  }
-                  rows={3}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
-                />
-              </div>
-            </div>
-
-            <Button className="w-full" onClick={handleManualSubmit}>
-              Continue
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

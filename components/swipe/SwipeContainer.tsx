@@ -6,6 +6,7 @@ import { PreferenceSelector } from "./PreferenceSelector";
 import { SwipeStack } from "./SwipeStack";
 import {
   ProfileCategory,
+  NetworkingGoal,
   Profile,
   LikedProfile,
   UserProfile,
@@ -16,6 +17,7 @@ import Link from "next/link";
 import { Heart, RotateCcw } from "lucide-react";
 
 const USER_PROFILE_KEY = "swipeconnect_user_profile";
+const LIKED_PROFILES_KEY = "swipeconnect_liked_profiles";
 
 type Phase = "setup" | "preferences" | "swiping" | "complete";
 
@@ -23,6 +25,9 @@ export function SwipeContainer() {
   const [phase, setPhase] = useState<Phase>("setup");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [networkingGoal, setNetworkingGoal] = useState<NetworkingGoal | null>(
+    null
+  );
   const [likedProfiles, setLikedProfiles] = useState<LikedProfile[]>([]);
 
   // Load saved user profile on mount
@@ -44,21 +49,41 @@ export function SwipeContainer() {
     setPhase("preferences");
   }, []);
 
-  const handleCategorySelect = useCallback((category: ProfileCategory) => {
-    const filtered = getProfilesByCategory(category);
-    setProfiles(filtered);
-    setPhase("swiping");
-  }, []);
+  const handleCategorySelect = useCallback(
+    (category: ProfileCategory, goal: NetworkingGoal) => {
+      const filtered = getProfilesByCategory(category);
+      setProfiles(filtered);
+      setNetworkingGoal(goal);
+      setPhase("swiping");
+    },
+    []
+  );
 
-  const handleComplete = useCallback((liked: LikedProfile[]) => {
-    setLikedProfiles(liked);
-    setPhase("complete");
-  }, []);
+  const handleComplete = useCallback(
+    (liked: LikedProfile[]) => {
+      setLikedProfiles(liked);
+      // Persist liked profiles to localStorage
+      try {
+        const existing = localStorage.getItem(LIKED_PROFILES_KEY);
+        const existingProfiles: LikedProfile[] = existing
+          ? JSON.parse(existing)
+          : [];
+        const merged = [...existingProfiles, ...liked];
+        localStorage.setItem(LIKED_PROFILES_KEY, JSON.stringify(merged));
+      } catch {
+        // fallback: just save current batch
+        localStorage.setItem(LIKED_PROFILES_KEY, JSON.stringify(liked));
+      }
+      setPhase("complete");
+    },
+    []
+  );
 
   const handleReset = useCallback(() => {
     setPhase("preferences");
     setProfiles([]);
     setLikedProfiles([]);
+    setNetworkingGoal(null);
   }, []);
 
   if (phase === "setup") {
@@ -74,6 +99,7 @@ export function SwipeContainer() {
       <SwipeStack
         profiles={profiles}
         userProfile={userProfile}
+        networkingGoal={networkingGoal}
         onComplete={handleComplete}
       />
     );

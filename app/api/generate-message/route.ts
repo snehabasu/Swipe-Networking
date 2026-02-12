@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { NETWORKING_GOALS, NetworkingGoal } from "@/lib/types/swipe";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -7,7 +8,7 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { profile, userProfile } = await request.json();
+    const { profile, userProfile, networkingGoal } = await request.json();
 
     if (!profile?.name || !profile?.title || !profile?.company) {
       return NextResponse.json(
@@ -27,6 +28,16 @@ Background: ${userProfile.summary}
 `
       : "";
 
+    const goalConfig = NETWORKING_GOALS.find(
+      (g) => g.id === (networkingGoal as NetworkingGoal)
+    );
+    const goalContext = goalConfig
+      ? `
+NETWORKING GOAL: ${goalConfig.label}
+TONE GUIDANCE: ${goalConfig.promptHint}
+`
+      : "";
+
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 300,
@@ -42,12 +53,13 @@ Company: ${profile.company}
 Headline: ${profile.headline}
 About: ${profile.summary}
 Mutual connections: ${profile.mutualConnections}
-${userContext}
+${userContext}${goalContext}
 The message should:
 - Start with a personalized opener referencing something specific about the recipient's work
 - Clearly articulate what value the sender brings — highlight relevant experience, skills, or shared interests that would make this connection mutually beneficial
 - Position the sender as someone who can contribute, not just someone who wants something
 - Find genuine common ground between the sender's background and the recipient's work
+- Match the tone and intent described in the NETWORKING GOAL and TONE GUIDANCE above
 - Be conversational but professional, not overly formal or salesy
 - End with a soft call to action (e.g., "Would love to exchange ideas sometime")
 - NOT include a subject line, just the message body

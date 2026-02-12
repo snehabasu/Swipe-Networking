@@ -1,20 +1,32 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
-import { SwipeCard } from "./SwipeCard";
+import { SwipeCard, type SwipeCardHandle } from "./SwipeCard";
 import { MessageModal } from "./MessageModal";
-import { Profile, LikedProfile, SwipeDirection, UserProfile } from "@/lib/types/swipe";
+import {
+  Profile,
+  LikedProfile,
+  SwipeDirection,
+  UserProfile,
+  NetworkingGoal,
+} from "@/lib/types/swipe";
 import { Button } from "@/components/ui/button";
 import { Heart, X, RotateCcw } from "lucide-react";
 
 interface SwipeStackProps {
   profiles: Profile[];
   userProfile: UserProfile | null;
+  networkingGoal: NetworkingGoal | null;
   onComplete: (liked: LikedProfile[]) => void;
 }
 
-export function SwipeStack({ profiles, userProfile, onComplete }: SwipeStackProps) {
+export function SwipeStack({
+  profiles,
+  userProfile,
+  networkingGoal,
+  onComplete,
+}: SwipeStackProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedProfiles, setLikedProfiles] = useState<LikedProfile[]>([]);
   const [history, setHistory] = useState<
@@ -25,20 +37,24 @@ export function SwipeStack({ profiles, userProfile, onComplete }: SwipeStackProp
     message: string;
     isLoading: boolean;
   } | null>(null);
+  const topCardRef = useRef<SwipeCardHandle>(null);
 
-  const generateMessage = useCallback(async (profile: Profile) => {
-    try {
-      const res = await fetch("/api/generate-message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, userProfile }),
-      });
-      const data = await res.json();
-      return data.message || data.fallback || "Could not generate message.";
-    } catch {
-      return "Hi! I came across your profile and was really impressed by your work. I'd love to connect and learn more about what you're building. Would you be open to a brief chat sometime?";
-    }
-  }, [userProfile]);
+  const generateMessage = useCallback(
+    async (profile: Profile) => {
+      try {
+        const res = await fetch("/api/generate-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profile, userProfile, networkingGoal }),
+        });
+        const data = await res.json();
+        return data.message || data.fallback || "Could not generate message.";
+      } catch {
+        return "Hi! I came across your profile and was really impressed by your work. I'd love to connect and learn more about what you're building. Would you be open to a brief chat sometime?";
+      }
+    },
+    [userProfile, networkingGoal]
+  );
 
   const handleSwipe = useCallback(
     async (direction: SwipeDirection) => {
@@ -72,16 +88,42 @@ export function SwipeStack({ profiles, userProfile, onComplete }: SwipeStackProp
     [currentIndex, profiles, generateMessage, likedProfiles, onComplete]
   );
 
-  const handleModalClose = useCallback(() => {
-    setModal(null);
-    setCurrentIndex((prev) => {
-      const next = prev + 1;
-      if (next >= profiles.length) {
-        setTimeout(() => onComplete(likedProfiles), 0);
+  const handleButtonSwipe = useCallback(
+    (direction: SwipeDirection) => {
+      if (topCardRef.current) {
+        topCardRef.current.flyOff(direction);
+      } else {
+        handleSwipe(direction);
       }
-      return next;
-    });
-  }, [profiles.length, onComplete, likedProfiles]);
+    },
+    [handleSwipe]
+  );
+
+  const handleModalClose = useCallback(
+    (editedMessage?: string) => {
+      if (editedMessage !== undefined) {
+        setLikedProfiles((prev) => {
+          const updated = [...prev];
+          if (updated.length > 0) {
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              message: editedMessage,
+            };
+          }
+          return updated;
+        });
+      }
+      setModal(null);
+      setCurrentIndex((prev) => {
+        const next = prev + 1;
+        if (next >= profiles.length) {
+          setTimeout(() => onComplete(likedProfiles), 0);
+        }
+        return next;
+      });
+    },
+    [profiles.length, onComplete, likedProfiles]
+  );
 
   const handleUndo = useCallback(() => {
     if (history.length === 0) return;
@@ -131,6 +173,7 @@ export function SwipeStack({ profiles, userProfile, onComplete }: SwipeStackProp
           .map(({ profile, stackIndex }) => (
             <SwipeCard
               key={profile.id}
+              ref={stackIndex === 0 ? topCardRef : undefined}
               profile={profile}
               onSwipe={handleSwipe}
               isTop={stackIndex === 0}
@@ -145,7 +188,7 @@ export function SwipeStack({ profiles, userProfile, onComplete }: SwipeStackProp
           variant="outline"
           size="icon-lg"
           className="rounded-full w-14 h-14 border-2 border-red-200 hover:bg-red-50 hover:border-red-400 dark:border-red-900 dark:hover:bg-red-950 dark:hover:border-red-700"
-          onClick={() => handleSwipe("left")}
+          onClick={() => handleButtonSwipe("left")}
         >
           <X className="w-6 h-6 text-red-500" />
         </Button>
@@ -164,7 +207,7 @@ export function SwipeStack({ profiles, userProfile, onComplete }: SwipeStackProp
           variant="outline"
           size="icon-lg"
           className="rounded-full w-14 h-14 border-2 border-green-200 hover:bg-green-50 hover:border-green-400 dark:border-green-900 dark:hover:bg-green-950 dark:hover:border-green-700"
-          onClick={() => handleSwipe("right")}
+          onClick={() => handleButtonSwipe("right")}
         >
           <Heart className="w-6 h-6 text-green-500" />
         </Button>
